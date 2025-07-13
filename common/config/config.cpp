@@ -10,17 +10,17 @@ namespace config {
 
 namespace {
 
-const char CONFIG_PATH[]{"/config/sys-tune/config.ini"};
+const char CONFIG_PATH[]{"/config/sys-tune-enhanced/config.ini"};
 // blacklist uses it's own config file because eventually a database
 // may be setup and users can easily update their blacklist by downloading
 // an updated blacklist.ini.
 // Also, the blacklist lookup needs to be as fast as possible
 // (literally a race until the title opens audren), so a seperate, smaller file is ideal.
-const char BLACKLIST_PATH[]{"/config/sys-tune/blacklist.ini"};
+const char BLACKLIST_PATH[]{"/config/sys-tune-enhanced/blacklist.ini"};
 // Custom whitelist implementation
-const char WHITELIST_PATH[]{"/config/sys-tune/whitelist.ini"};
+const char WHITELIST_PATH[]{"/config/sys-tune-enhanced/whitelist.ini"};
 // config directory path
-const char CONFIG_DIRECTORY_PATH[]{"/config/sys-tune/"};
+const char CONFIG_DIRECTORY_PATH[]{"/config/sys-tune-enhanced/"};
 // config directory extension
 const char CONFIG_FILE_EXTENSION[]{".ini"};
 
@@ -50,7 +50,7 @@ void create_config_dir() {
     /* whilst the sys-mod is running and then any changes made via the overlay */
     /* is lost, which sucks. */
     sdmc::CreateFolder("/config");
-    sdmc::CreateFolder("/config/sys-tune");
+    sdmc::CreateFolder("/config/sys-tune-enhanced");
 }
 
 auto get_tid_str(u64 tid) -> const char* {

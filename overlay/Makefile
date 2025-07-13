@@ -37,9 +37,9 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
-APP_TITLE	:=	sys-tune
+APP_TITLE	:=	sys-tune-enhanced
 
-TARGET		:=	sys-tune-overlay
+TARGET		:=	sys-tune-enhanced-overlay
 BUILD		:=	build
 SOURCES		:=	source ../ipc ../common/minIni ../common/sdmc ../common/config ../common/pm ../common/aud
 DATA		:=	data

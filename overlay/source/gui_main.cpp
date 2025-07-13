@@ -182,7 +182,7 @@ tsl::elm::Element *MainGui::createUI() {
 
     list->addItem(new tsl::elm::CategoryHeader("Misc"));
 
-    auto exit_button = new tsl::elm::ListItem("Close sys-tune");
+    auto exit_button = new tsl::elm::ListItem("Close sys-tune-enhanced");
     exit_button->setClickListener([](u64 keys) {
         if (keys & HidNpadButton_A) {
             tuneQuit();

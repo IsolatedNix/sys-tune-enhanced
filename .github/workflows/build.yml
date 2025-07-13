@@ -1,4 +1,4 @@
-name: Build sys-tune and overlay
+name: Build sys-tune-enhanced and overlay
 
 on: [push]
 jobs:
@@ -19,11 +19,11 @@ jobs:
         mkdir -p dist/switch/.overlays
         mkdir -p dist/atmosphere/contents/4200000000000000/flags
         touch dist/atmosphere/contents/4200000000000000/flags/boot2.flag
-        cp sys-tune/sys-tune.nsp dist/atmosphere/contents/4200000000000000/exefs.nsp
-        cp sys-tune/toolbox.json dist/atmosphere/contents/4200000000000000/
-        cp overlay/sys-tune-overlay.ovl dist/switch/.overlays/
+        cp sys-tune-enhanced/sys-tune-enhanced.nsp dist/atmosphere/contents/4200000000000000/exefs.nsp
+        cp sys-tune-enhanced/toolbox.json dist/atmosphere/contents/4200000000000000/
+        cp overlay/sys-tune-enhanced-overlay.ovl dist/switch/.overlays/
 
     - uses: actions/upload-artifact@master
       with:
-        name: sys-tune
+        name: sys-tune-enhanced
         path: dist

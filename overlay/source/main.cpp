@@ -23,11 +23,11 @@ class SysTuneOverlay final : public tsl::Overlay {
         u64 pid{}, tid{};
         pm::getCurrentPidTid(&pid, &tid);
 
-        // don't open sys-tune if blacklisted title is active!
+        // don't open sys-tune-enhanced if blacklisted title is active!
         if (config::get_title_blacklist(tid)) {
             this->msg =
                 "Title is blacklisted!\n"
-                "Exit to use sys-tune";
+                "Exit to use sys-tune-enhanced";
             return;
         }
 
@@ -79,7 +79,7 @@ class SysTuneOverlay final : public tsl::Overlay {
         u32 api;
         if (R_FAILED(tuneGetApiVersion(&api)) || api != TUNE_API_VERSION) {
             this->msg = "   Unsupported\n"
-                        "sys-tune version!";
+                        "sys-tune-enhanced version!";
         }
     }
 
