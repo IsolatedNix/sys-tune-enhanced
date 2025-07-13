@@ -47,7 +47,7 @@ tsl::elm::Element *ErrorGui::createUI() {
     if(pm::systuneIsRunning()) {
         auto exit_msg = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *drawer, u16 x, u16 y, u16 w, u16 h) {
              auto [width, height] = drawer->drawString("Cannot change settings while \n"
-                                                       "sys-tune-enhanced player is running. \n"
+                                                       "sys-tune player is running. \n"
                                                        "Please exit sys-tune first!"
                                                        , false, x + (w / 2) - (this->msgW / 2), y + 30 , 25, 0xffff);
             if (msgW == 0) {
