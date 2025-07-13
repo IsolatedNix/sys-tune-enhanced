@@ -1,5 +1,6 @@
 #include "gui_main.hpp"
 
+#include "tune.h"
 #include "elm_overlayframe.hpp"
 #include "elm_volume.hpp"
 #include "gui_browser.hpp"
@@ -51,16 +52,46 @@ tsl::elm::Element *MainGui::createUI() {
 
     /* Whitelist mode toggle */
     auto whitelist_mode = new tsl::elm::ToggleListItem("Whitelist Mode", config::get_whitelist_mode());
-    whitelist_mode->setStateChangedListener([](bool state) {
+    // take action when the state is changed
+    whitelist_mode->setStateChangedListener([tid](bool state) {
         config::set_whitelist_mode(state);
+    });
+
+    // also take action when it is clicked
+    whitelist_mode->setClickListener([tid](u64 keys) {
+        if (keys & HidNpadButton_A) {
+            if (config::get_whitelist_mode() && config::get_title_whitelist(tid) && config::get_autoplay_enabled()) {
+                tunePlay();
+            } else if (config::get_whitelist_mode() && !config::get_title_whitelist(tid)) {
+                tuneQuit();
+                tsl::goBack();
+            }
+            return true;
+        }
+        return false;
     });
     list->addItem(whitelist_mode);
 
     /* Whitelist current game toggle */
     if (tid != 0) {
         auto whitelist_game = new tsl::elm::ToggleListItem("Whitelist Current Game", config::get_title_whitelist(tid));
+        // take action when the state is changed
         whitelist_game->setStateChangedListener([tid](bool state) {
             config::set_title_whitelist(tid, state);
+        });
+
+        // also take action when it is clicked
+        whitelist_game->setClickListener([tid](u64 keys) {
+            if (keys & HidNpadButton_A) {
+                if (config::get_title_whitelist(tid) && config::get_whitelist_mode() && config::get_autoplay_enabled()) {
+                    tunePlay();
+                } else if (config::get_whitelist_mode() && !config::get_title_whitelist(tid)) {
+                    tuneQuit();
+                    tsl::goBack();
+                }
+                return true;
+            }
+            return false;
         });
         list->addItem(whitelist_game);
     }
