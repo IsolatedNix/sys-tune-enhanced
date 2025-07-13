@@ -17,6 +17,8 @@ const char CONFIG_PATH[]{"/config/sys-tune/config.ini"};
 // Also, the blacklist lookup needs to be as fast as possible
 // (literally a race until the title opens audren), so a seperate, smaller file is ideal.
 const char BLACKLIST_PATH[]{"/config/sys-tune/blacklist.ini"};
+// Custom whitelist implementation
+const char WHITELIST_PATH[]{"/config/sys-tune/whitelist.ini"};
 
 void create_config_dir() {
     /* Creating directory on every set call looks sus, but the user may delete the dir */
@@ -32,7 +34,7 @@ auto get_tid_str(u64 tid) -> const char* {
     return buf;
 }
 
-} // nested 'namespace'
+} // nested anonymous 'namespace'
 
 auto get_autoplay_enabled() -> bool {
     return ini_getbool("tune", "autoplay_enabled", false, CONFIG_PATH);
@@ -151,4 +153,25 @@ void save_playlist(const std::vector<std::string>& playlist) {
     }
 }
 
+auto get_whitelist_mode() -> bool {
+    return ini_getbool("custom", "whitelist_mode", false, CONFIG_PATH);
 }
+
+void set_whitelist_mode(bool value) {
+    create_config_dir();
+    ini_putl("custom", "whitelist_mode", value, CONFIG_PATH);
+}
+
+auto get_title_whitelist(u64 tid) -> bool {
+    if (tid == 0) return false;
+    return ini_getbool("whitelist", get_tid_str(tid), false, WHITELIST_PATH);
+}
+
+void set_title_whitelist(u64 tid, bool value) {
+    if (tid == 0) return;
+    create_config_dir();
+    ini_putl("whitelist", get_tid_str(tid), value, WHITELIST_PATH);
+}
+
+} // namespace 'config'
+

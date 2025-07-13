@@ -487,19 +487,27 @@ namespace tune::impl {
                 g_title_volume = 1.f;
                 g_use_title_volume = false;
 
-                // Only check title-specific settings if autoplay is enabled
-                if (autoplay_enabled) {
-                    if (config::has_title_volume(new_tid)) {
-                        g_use_title_volume = true;
-                        SetTitleVolume(std::clamp(config::get_title_volume(new_tid), 0.f, VOLUME_MAX));
-                    }
-                }
+                if (new_tid != 0) {  // Only process if we have a valid title ID
+                    if (whitelist_mode) {
+                        // In whitelist mode, check if this title is whitelisted
+                        bool is_whitelisted = config::get_title_whitelist(new_tid);
+                        g_close_audren = !is_whitelisted;
+                        g_should_pause = !is_whitelisted;
+                    } else {
+                        // In blacklist mode (default), only close if blacklisted
+                        bool is_blacklisted = config::get_title_blacklist(new_tid);
+                        g_close_audren = is_blacklisted;
 
-                // TODO: fade song in rather than abruptly playing to avoid jump scares
-                if (config::has_title_enabled(new_tid)) {
-                    g_should_pause = !config::get_title_enabled(new_tid);
-                } else {
-                    g_should_pause = !config::get_title_enabled_default();
+                        // Only check title-specific settings if autoplay is enabled
+                        if (autoplay_enabled) {
+                            // TODO: fade song in rather than abruptly playing to avoid jump scares
+                            if (config::has_title_enabled(new_tid)) {
+                                g_should_pause = !config::get_title_enabled(new_tid);
+                            } else {
+                                g_should_pause = !config::get_title_enabled_default();
+                            }
+                        }
+                    }
                 }
             }
 
