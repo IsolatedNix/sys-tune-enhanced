@@ -438,17 +438,28 @@ namespace tune::impl {
     }
 
     void PmdmntThreadFunc(void *ptr) {
+        // Load and apply the autoplay setting from config
+        bool autoplay_enabled = config::get_autoplay_enabled();
+        bool whitelist_mode = config::get_whitelist_mode();
+        g_should_pause = !autoplay_enabled;  // Set initial pause state based on autoplay setting
+
         while (g_should_run) {
             u64 pid{}, new_tid{};
             if (pm::PollCurrentPidTid(&pid, &new_tid)) {
                 // check if title is blacklisted
+                // Always initialize these to safe defaults
                 g_close_audren = config::get_title_blacklist(new_tid);
+                g_should_pause = true;
 
                 g_title_volume = 1.f;
+                g_use_title_volume = false;
 
-                if (config::has_title_volume(new_tid)) {
-                    g_use_title_volume = true;
-                    SetTitleVolume(std::clamp(config::get_title_volume(new_tid), 0.f, VOLUME_MAX));
+                // Only check title-specific settings if autoplay is enabled
+                if (autoplay_enabled) {
+                    if (config::has_title_volume(new_tid)) {
+                        g_use_title_volume = true;
+                        SetTitleVolume(std::clamp(config::get_title_volume(new_tid), 0.f, VOLUME_MAX));
+                    }
                 }
 
                 // TODO: fade song in rather than abruptly playing to avoid jump scares
@@ -469,7 +480,7 @@ namespace tune::impl {
                 // audWrapperSetProcessRecordVolume(pid, 0, v);
             }
 
-            svcSleepThread(10'000'000);
+            svcSleepThread(100'000'000ul);
         }
     }
 

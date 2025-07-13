@@ -2,6 +2,8 @@
 
 #include "tune.h"
 #include "elm_status_bar.hpp"
+#include "config/config.hpp"
+#include "pm/pm.hpp"
 
 #include <tesla.hpp>
 

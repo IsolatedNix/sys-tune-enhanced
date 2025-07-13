@@ -2,6 +2,9 @@
 #include "sdmc/sdmc.hpp"
 #include "minIni/minIni.h"
 #include <cstdio>
+#include <cstring>
+#include <vector>
+#include <string>
 
 namespace config {
 
@@ -29,7 +32,17 @@ auto get_tid_str(u64 tid) -> const char* {
     return buf;
 }
 
+} // nested 'namespace'
+
+auto get_autoplay_enabled() -> bool {
+    return ini_getbool("tune", "autoplay_enabled", false, CONFIG_PATH);
 }
+
+void set_autoplay_enabled(bool value) {
+    create_config_dir();
+    ini_putl("tune", "autoplay_enabled", value, CONFIG_PATH);
+}
+
 
 auto get_shuffle() -> bool {
     return ini_getbool("config", "shuffle", false, CONFIG_PATH);

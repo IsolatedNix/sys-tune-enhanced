@@ -1,8 +1,14 @@
 #pragma once
 
 #include <switch.h>
+#include <string>
+#include <vector>
 
 namespace config {
+
+// tune autoplay
+auto get_autoplay_enabled() -> bool;
+void set_autoplay_enabled(bool value);
 
 // tune shuffle
 auto get_shuffle() -> bool;
