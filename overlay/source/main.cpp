@@ -20,14 +20,23 @@ class SysTuneOverlay final : public tsl::Overlay {
             return;
         }
 
-        // don't open sys-tune if blacklisted title is active!
         u64 pid{}, tid{};
         pm::getCurrentPidTid(&pid, &tid);
 
+        // don't open sys-tune if blacklisted title is active!
         if (config::get_title_blacklist(tid)) {
             this->msg =
                 "Title is blacklisted!\n"
                 "Exit to use sys-tune";
+            return;
+        }
+
+        // Also do not open if a non whitelisted title is active and whitelist mode is enabled!
+        if (config::get_whitelist_mode() && !config::get_title_whitelist(tid)) {
+            this->msg =
+                "Whitelist Mode is active \n"
+                "Title is not whitelisted!\n"
+                "Exit to use sys-tune-enhanced";
             return;
         }
 
