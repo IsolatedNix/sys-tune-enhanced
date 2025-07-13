@@ -7,7 +7,7 @@
                 "${workspaceFolder}/**",
                 "${DEVKITPRO}/libnx/include/",
                 "${DEVKITPRO}/portlibs/switch/include/",
-                "${workspaceFolder}/sys-tune/nxExt/include/",
+                "${workspaceFolder}/sys-tune-enhanced/nxExt/include/",
                 "${workspaceFolder}/overlay/lib/include/",
                 "${workspaceFolder}/ipc/",
                 "${workspaceFolder}/common/"

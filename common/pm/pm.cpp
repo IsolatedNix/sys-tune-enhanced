@@ -48,4 +48,15 @@ auto PollCurrentPidTid(u64* pid_out, u64* tid_out) -> bool {
     return false;
 }
 
+// sys-tune-enhanced does not appear to play nice in any way when changed while suspended.
+// This method can be used in the while in the error screen to determine whether settings may be safely changed...
+auto systuneIsRunning() -> bool {
+    u64 pid = 0;
+    const u64 &module_pid = 0x4200000000000000ULL;
+    if (R_FAILED(pmdmntGetProcessId(&pid, module_pid)))
+        return false;
+
+    return pid > 0;
+}
+
 }

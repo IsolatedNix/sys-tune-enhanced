@@ -1,5 +1,6 @@
 #include "gui_main.hpp"
 
+#include "tune.h"
 #include "elm_overlayframe.hpp"
 #include "elm_volume.hpp"
 #include "gui_browser.hpp"
@@ -47,6 +48,62 @@ tsl::elm::Element *MainGui::createUI() {
     });
     list->addItem(browser_button);
 
+    list->addItem(new tsl::elm::CategoryHeader("Settings"));
+
+    /* Whitelist mode toggle */
+    auto whitelist_mode = new tsl::elm::ToggleListItem("Whitelist Mode", config::get_whitelist_mode());
+    // take action when the state is changed
+    whitelist_mode->setStateChangedListener([tid](bool state) {
+        config::set_whitelist_mode(state);
+    });
+
+    // also take action when it is clicked
+    whitelist_mode->setClickListener([tid](u64 keys) {
+        if (keys & HidNpadButton_A) {
+            if (config::get_whitelist_mode() && config::get_title_whitelist(tid) && config::get_autoplay_enabled()) {
+                tunePlay();
+            } else if (config::get_whitelist_mode() && !config::get_title_whitelist(tid)) {
+                tuneQuit();
+                tsl::goBack();
+            }
+            return true;
+        }
+        return false;
+    });
+    list->addItem(whitelist_mode);
+
+    /* Whitelist current game toggle */
+    if (tid != 0) {
+        auto whitelist_game = new tsl::elm::ToggleListItem("Whitelist Current Game", config::get_title_whitelist(tid));
+        // take action when the state is changed
+        whitelist_game->setStateChangedListener([tid](bool state) {
+            config::set_title_whitelist(tid, state);
+        });
+
+        // also take action when it is clicked
+        whitelist_game->setClickListener([tid](u64 keys) {
+            if (keys & HidNpadButton_A) {
+                if (config::get_title_whitelist(tid) && config::get_whitelist_mode() && config::get_autoplay_enabled()) {
+                    tunePlay();
+                } else if (config::get_whitelist_mode() && !config::get_title_whitelist(tid)) {
+                    tuneQuit();
+                    tsl::goBack();
+                }
+                return true;
+            }
+            return false;
+        });
+        list->addItem(whitelist_game);
+    }
+
+    /* Title ID Playlist mode toggle */
+    auto title_playlist_mode = new tsl::elm::ToggleListItem("Title ID Playlist Mode", config::get_title_playlist_mode());
+    title_playlist_mode->setStateChangedListener([](bool state) {
+        config::set_title_playlist_mode(state);
+    });
+    list->addItem(title_playlist_mode);
+
+
     /* Volume indicator */
     list->addItem(new tsl::elm::CategoryHeader("Volume Control"));
 
@@ -89,6 +146,16 @@ tsl::elm::Element *MainGui::createUI() {
 
     list->addItem(new tsl::elm::CategoryHeader("Play / Pause"));
 
+    /* Autoplay on boot toggle */
+    auto tune_autoplay = new tsl::elm::ToggleListItem("Autoplay on boot", config::get_autoplay_enabled(), "On", "Off");
+    tune_autoplay->setStateChangedListener([](bool new_value) {
+        config::set_autoplay_enabled(new_value);
+        if (new_value) {
+            tunePlay();
+        }
+    });
+    list->addItem(tune_autoplay);
+
     /* Per title tune toggle. */
     auto tune_play = new tsl::elm::ToggleListItem("Tune", config::get_title_enabled(tid), "Play", "Pause");
     tune_play->setStateChangedListener([tid](bool new_value) {
@@ -115,7 +182,7 @@ tsl::elm::Element *MainGui::createUI() {
 
     list->addItem(new tsl::elm::CategoryHeader("Misc"));
 
-    auto exit_button = new tsl::elm::ListItem("Close sys-tune");
+    auto exit_button = new tsl::elm::ListItem("Close sys-tune-enhanced");
     exit_button->setClickListener([](u64 keys) {
         if (keys & HidNpadButton_A) {
             tuneQuit();

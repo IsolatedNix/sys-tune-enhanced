@@ -11,7 +11,7 @@ u32 __nx_applet_type     = AppletType_None;
 u32 __nx_fs_num_sessions = 1;
 
 // do not decrease this, will either cause fatal or will fail to start
-// - 1024 * 216: needed for sys-tune to boot
+// - 1024 * 216: needed for sys-tune-enhanced to boot
 // - 1024 * 236: base
 // - 1024 * 268: needed for mp3 playback (at 32kb)
 // - 1024 * 300: needed for mp3 playback (at 64kb)

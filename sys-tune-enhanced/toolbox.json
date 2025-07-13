@@ -1,5 +1,5 @@
 {
-    "name"  : "sys-tune",
+    "name"  : "sys-tune-enhanced",
     "tid"   : "4200000000000000",
     "requires_reboot": false
 }

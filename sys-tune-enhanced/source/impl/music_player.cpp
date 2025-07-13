@@ -230,66 +230,7 @@ namespace tune::impl {
         g_playlist = playlist;
         g_shuffle_playlist = shuffle;
         g_current = current;
-
-        // tldr, most fancy things made by N will fatal
-        const u64 blacklist[] = {
-            // https://github.com/HookedBehemoth/sys-tune/issues/10
-            0x010077B00E046000, // spyro reignited trilogy
-            0x0100AD9012510000, // pac man 99
-            0x01006C100EC08000, // minecraft dugeons
-            0x01000A10041EA000, // skyrim
-            0x0100F9F00C696000, // crash team racing nitro fueled
-            0x01001E9003502000, // labo 03
-            0x0100165003504000, // labo 04
-            0x0100F2300D4BA000, // darksiders genesis
-            0x0100E1400BA96000, // darksiders warmastered edition
-            0x010071800BA98000, // darksiders 2
-            0x0100F8F014190000, // darksiders 3
-            0x0100D870045B6000, // NES NSO
-            0x01008D300C50C000, // SNES NSO
-            0x0100C62011050000, // GB NSO
-            0x010012F017576000, // GBA NSO
-            0x0100C9A00ECE6000, // N64 NSO
-
-            // https://github.com/tallbl0nde/TriPlayer/issues/31
-            0x0100E5600D446000, // Ni No Kuni: Wrath of the White Witch
-            0x0100A3900C3E2000, // Paper Mario™: The Origami King
-            0x0100626011656000, // The Outer Worlds
-            0x010090F012916000, // Ghostrunner
-            0x0100F15012D36000, // IMMERSE LAND
-            0x01005950022EC000, // Blade Strangers
-            0x0100423009358000, // Death Road to Canada
-            0x010044500C182000, // Sid Meier's Civilization VI
-
-            // anything made by PROTOTYPE
-            0x0100A3A00CC7E000, // CLANNAD
-            0x01007B501372C000, // CLANNAD Side Stories
-            0x01003B300E4AA000, // THE GRISAIA TRILOGY
-            0x0100F06013710000, // ISLAND
-            0x0100BD100C752000, // planetarian
-            0x01002330123BC000, // GRISAIA PHANTOM TRIGGER 05
-            0x0100240013AE8000, // GRISAIA PHANTOM TRIGGER 06
-            0x01002EF014DA2000, // GRISAIA PHANTOM TRIGGER 07
-            0x0100398010314000, // Tomoyo After -It's a Wonderful Life- CS Edition
-            0x01004AB0133E8000, // GRISAIA PHANTOM TRIGGER 01 to 05
-            0x01005250123B8000, // GRISAIA PHANTOM TRIGGER 03
-            0x010054101370E000, // FATAL TWELVE
-            0x010062A0178A8000, // LOOPERS
-            0x0100806017562000, // OshiRabu: Waifus Over Husbandos + Love･or･die
-            0x0100943010310000, // Little Busters! Converted Edition
-            0x010096000CA38000, // TAISHO x ALICE ALL IN ONE
-            0x0100A1200CA3C000, // Butterfly's Poison; Blood Chains
-            0x0100C38019CE4000, // GRISAIA PHANTOM TRIGGER 08
-            0x0100C9C0178A6000, // Harmonia
-            0x0100CAF013AE6000, // GRISAIA PHANTOM TRIGGER 5.5
-            0x0100D970123BA000, // GRISAIA PHANTOM TRIGGER 04
-        };
-
-        // do this on startup because the user may not copy a config
-        // file or delete it at somepoint
-        for (auto tid : blacklist) {
-            config::set_title_blacklist(tid, true);
-        }
+        g_queue_position = 0;
 
         if (auto rc = audioInit(); R_FAILED(rc)) {
             return rc;
@@ -309,6 +250,18 @@ namespace tune::impl {
     }
 
     void Exit() {
+        // Save playlist before exit
+        if (g_playlist) {
+            std::vector<std::string> paths;
+            paths.reserve(g_playlist->size());
+            for (const auto& entry : *g_playlist) {
+                paths.push_back(entry.path);
+            }
+            u64 pid{}, new_tid{};
+            pm::getCurrentPidTid(&pid, &new_tid);
+            config::save_playlist(paths,new_tid);
+        }
+
         g_should_run = false;
     }
 
@@ -438,24 +391,82 @@ namespace tune::impl {
     }
 
     void PmdmntThreadFunc(void *ptr) {
+        // Load and apply the autoplay setting from config
+        bool autoplay_enabled = config::get_autoplay_enabled();
+        bool whitelist_mode = config::get_whitelist_mode();
+        bool is_whitelisted = false;
+        g_should_pause = !autoplay_enabled;  // Set initial pause state based on autoplay setting
+
         while (g_should_run) {
             u64 pid{}, new_tid{};
             if (pm::PollCurrentPidTid(&pid, &new_tid)) {
                 // check if title is blacklisted
+                // Always initialize these to safe defaults
+                if (config::get_title_playlist_mode()) {
+                    // Title Playlist Mode: can crash if queue is not cleared before closing audren
+                    ClearQueue(); 
+                }
                 g_close_audren = config::get_title_blacklist(new_tid);
+                g_should_pause = true;
 
                 g_title_volume = 1.f;
+                g_use_title_volume = false;
 
+                if (new_tid != 0) {  // Only process if we have a valid title ID
+                    if (whitelist_mode && !g_close_audren) {
+                        // In whitelist mode, check if this title is whitelisted
+                        is_whitelisted = config::get_title_whitelist(new_tid);
+                        g_close_audren = !is_whitelisted;
+                        g_should_pause = !is_whitelisted;
+                    }  
+
+                    if (!g_close_audren) {
+                        // Only check title-specific settings if autoplay is enabled
+                        if (autoplay_enabled) {
+                            // TODO: fade song in rather than abruptly playing to avoid jump scares
+                            if (config::has_title_enabled(new_tid)) {
+                                g_should_pause = !config::get_title_enabled(new_tid);
+                            } else {
+                                g_should_pause = !config::get_title_enabled_default();
+                            }
+                        }
+                        // Load saved playlist
+                        if (config::get_title_playlist_mode() || g_playlist->size() == 0) {
+                            auto saved_paths = config::get_playlist(new_tid);
+                            for (const auto& path : saved_paths) {
+                                if (sdmc::FileExists(path.c_str())) {
+                                    // NOTE: do not decrement this
+                                    static PlaylistID playlist_id{};
+
+                                    const PlaylistEntry new_entry{
+                                        .path = path,
+                                        .id = playlist_id
+                                    };
+                                    g_playlist->push_back(new_entry);
+
+                                    // add new entry id to shuffle_playlist_list
+                                    const auto shuffle_playlist_size = g_shuffle_playlist->size();
+                                    const auto shuffle_index = (shuffle_playlist_size > 1) ? (randomGet64() % shuffle_playlist_size) : 0;
+                                    g_shuffle_playlist->emplace(g_shuffle_playlist->cbegin() + shuffle_index, playlist_id);
+
+                                    playlist_id++;
+                                }
+                            }
+                        }
+                    } else { 
+                        // Note: Clears the queue when switching to a non whitelisted or blacklisted app. 
+                        // Having a different playlist by title id does not appear to work well 
+                        // when the paused song does not match with the active playlist...
+                        if (config::get_title_playlist_mode()) {
+                            ClearQueue();
+                        }
+                    }
+                }
+
+                // Handle title-specific volume settings
                 if (config::has_title_volume(new_tid)) {
                     g_use_title_volume = true;
                     SetTitleVolume(std::clamp(config::get_title_volume(new_tid), 0.f, VOLUME_MAX));
-                }
-
-                // TODO: fade song in rather than abruptly playing to avoid jump scares
-                if (config::has_title_enabled(new_tid)) {
-                    g_should_pause = !config::get_title_enabled(new_tid);
-                } else {
-                    g_should_pause = !config::get_title_enabled_default();
                 }
             }
 
@@ -469,7 +480,7 @@ namespace tune::impl {
                 // audWrapperSetProcessRecordVolume(pid, 0, v);
             }
 
-            svcSleepThread(10'000'000);
+            svcSleepThread(100'000'000ul);
         }
     }
 
@@ -720,6 +731,17 @@ namespace tune::impl {
         const auto shuffle_playlist_size = g_shuffle_playlist->size();
         const auto shuffle_index = (shuffle_playlist_size > 1) ? (randomGet64() % shuffle_playlist_size) : 0;
         g_shuffle_playlist->emplace(g_shuffle_playlist->cbegin() + shuffle_index, playlist_id);
+
+        // Save playlist to file
+        std::vector<std::string> paths;
+        paths.reserve(g_playlist->size());
+        for (const auto& entry : *g_playlist) {
+            paths.push_back(entry.path);
+        }
+        
+        u64 pid{}, new_tid{};
+        pm::getCurrentPidTid(&pid, &new_tid);
+        config::save_playlist(paths,new_tid);
 
         // increase playlist counter
         playlist_id++;
