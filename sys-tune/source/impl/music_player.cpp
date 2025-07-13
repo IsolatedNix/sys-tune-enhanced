@@ -230,6 +230,29 @@ namespace tune::impl {
         g_playlist = playlist;
         g_shuffle_playlist = shuffle;
         g_current = current;
+        g_queue_position = 0;
+
+        // Load saved playlist
+        auto saved_paths = config::get_playlist();
+        for (const auto& path : saved_paths) {
+            if (sdmc::FileExists(path.c_str())) {
+                // NOTE: do not decrement this
+                static PlaylistID playlist_id{};
+
+                const PlaylistEntry new_entry{
+                    .path = path,
+                    .id = playlist_id
+                };
+                g_playlist->push_back(new_entry);
+
+                // add new entry id to shuffle_playlist_list
+                const auto shuffle_playlist_size = g_shuffle_playlist->size();
+                const auto shuffle_index = (shuffle_playlist_size > 1) ? (randomGet64() % shuffle_playlist_size) : 0;
+                g_shuffle_playlist->emplace(g_shuffle_playlist->cbegin() + shuffle_index, playlist_id);
+
+                playlist_id++;
+            }
+        }
 
         // tldr, most fancy things made by N will fatal
         const u64 blacklist[] = {
@@ -309,6 +332,16 @@ namespace tune::impl {
     }
 
     void Exit() {
+        // Save playlist before exit
+        if (g_playlist) {
+            std::vector<std::string> paths;
+            paths.reserve(g_playlist->size());
+            for (const auto& entry : *g_playlist) {
+                paths.push_back(entry.path);
+            }
+            config::save_playlist(paths);
+        }
+
         g_should_run = false;
     }
 
@@ -731,6 +764,14 @@ namespace tune::impl {
         const auto shuffle_playlist_size = g_shuffle_playlist->size();
         const auto shuffle_index = (shuffle_playlist_size > 1) ? (randomGet64() % shuffle_playlist_size) : 0;
         g_shuffle_playlist->emplace(g_shuffle_playlist->cbegin() + shuffle_index, playlist_id);
+
+        // Save playlist to file
+        std::vector<std::string> paths;
+        paths.reserve(g_playlist->size());
+        for (const auto& entry : *g_playlist) {
+            paths.push_back(entry.path);
+        }
+        config::save_playlist(paths);
 
         // increase playlist counter
         playlist_id++;

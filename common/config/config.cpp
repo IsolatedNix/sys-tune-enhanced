@@ -124,4 +124,31 @@ void set_title_blacklist(u64 tid, bool value) {
     ini_putl("blacklist", get_tid_str(tid), value, BLACKLIST_PATH);
 }
 
+auto get_playlist() -> std::vector<std::string> {
+    std::vector<std::string> playlist;
+    long count = ini_getl("playlist", "count", 0, CONFIG_PATH);
+    
+     for (long i = 0; i < count; i++) {
+        char key[32];  // Increased buffer size
+        snprintf(key, sizeof(key), "track%d", static_cast<int>(i));  // Using %d and casting to int
+        char path[1024] = {0};
+        if (ini_gets("playlist", key, "", path, sizeof(path), CONFIG_PATH) > 0) {
+            playlist.push_back(path);
+        }
+    }
+    return playlist;
+}
+
+void save_playlist(const std::vector<std::string>& playlist) {
+    create_config_dir();
+    
+    ini_putl("playlist", "count", playlist.size(), CONFIG_PATH);
+    
+    for (size_t i = 0; i < playlist.size(); i++) {
+        char key[32];  // Increased buffer size
+        snprintf(key, sizeof(key), "track%d", static_cast<int>(i));  // Using %d and casting to int
+        ini_puts("playlist", key, playlist[i].c_str(), CONFIG_PATH);
+    }
+}
+
 }
