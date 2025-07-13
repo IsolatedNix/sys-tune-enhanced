@@ -113,6 +113,20 @@ tsl::elm::Element *ErrorGui::createUI() {
         }
     }
 
+    /* Title ID Playlist mode toggle */
+    if(!pm::systuneIsRunning()) {
+        auto title_playlist_mode = new tsl::elm::ToggleListItem("Title ID Playlist Mode", config::get_title_playlist_mode());
+        title_playlist_mode->setStateChangedListener([](bool state) {
+            if(!pm::systuneIsRunning()) {
+                config::set_title_playlist_mode(state);
+            }
+        });
+        list->addItem(title_playlist_mode);
+    } else {
+        auto title_playlist_mode = new tsl::elm::ListItem("Title ID Playlist Mode", config::get_title_playlist_mode() ? "On" : "Off");
+        list->addItem(title_playlist_mode);
+    }
+
     /* Autoplay on boot toggle */
     if(!pm::systuneIsRunning()) {
         auto tune_autoplay = new tsl::elm::ToggleListItem("Autoplay on boot", config::get_autoplay_enabled(), "On", "Off");

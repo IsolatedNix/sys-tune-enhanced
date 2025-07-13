@@ -19,6 +19,10 @@ const char CONFIG_PATH[]{"/config/sys-tune/config.ini"};
 const char BLACKLIST_PATH[]{"/config/sys-tune/blacklist.ini"};
 // Custom whitelist implementation
 const char WHITELIST_PATH[]{"/config/sys-tune/whitelist.ini"};
+// config directory path
+const char CONFIG_DIRECTORY_PATH[]{"/config/sys-tune/"};
+// config directory extension
+const char CONFIG_FILE_EXTENSION[]{".ini"};
 
 // .ini catergories
 const char DEFAULT_CATEGORY[]   =  {"config"};
@@ -38,6 +42,7 @@ const char* GLOBAL_VOLUME_CONFIG[]         = {DEFAULT_CATEGORY  , "global_volume
 const char* AUTOPLAY_CONFIG[]              = {TUNE_CATEGORY     , "autoplay_enabled"};
 const char* TITLE_ENABLED_DEFAULT_CONFIG[] = {TITLE_CATEGORY    , "default"};
 const char* PLAYLIST_COUNT_CONFIG[]        = {PLAYLIST_CATEGORY , "count"};
+const char* TITLE_PLAYLIST_MODE_CONFIG[]   = {ENHANCED_CATEGORY , "title_playlist_mode"};
 const char* WHITELIST_MODE_CONFIG[]        = {ENHANCED_CATEGORY , "whitelist_mode"};
 
 void create_config_dir() {
@@ -261,30 +266,63 @@ void set_title_blacklist(u64 tid, bool value) {
     ini_putl(BLACKLIST_CATEGORY, get_tid_str(tid), value, BLACKLIST_PATH);
 }
 
-auto get_playlist() -> std::vector<std::string> {
+auto get_title_playlist_mode() -> bool {
+    return ini_getbool(TITLE_PLAYLIST_MODE_CONFIG[0], TITLE_PLAYLIST_MODE_CONFIG[1], false, CONFIG_PATH);
+}
+
+void set_title_playlist_mode(bool value) {
+    create_config_dir();
+    ini_putl(TITLE_PLAYLIST_MODE_CONFIG[0], TITLE_PLAYLIST_MODE_CONFIG[1], value, CONFIG_PATH);
+}
+
+auto get_playlist(u64 tid) -> std::vector<std::string> {
     std::vector<std::string> playlist;
-    long count = ini_getl(PLAYLIST_COUNT_CONFIG[0], PLAYLIST_COUNT_CONFIG[1], 0, CONFIG_PATH);
+
+    char targetConfigPath[49]{};
+
+    if(get_title_playlist_mode()) {
+        std::strcpy(targetConfigPath,CONFIG_DIRECTORY_PATH);
+        std::strcat(targetConfigPath,get_tid_str(tid));
+        std::strcat(targetConfigPath,CONFIG_FILE_EXTENSION);
+    }
+    else {
+        std::strcpy(targetConfigPath,CONFIG_PATH);
+    }
+
+    long count = ini_getl(PLAYLIST_COUNT_CONFIG[0], PLAYLIST_COUNT_CONFIG[1], 0, targetConfigPath);
     
-     for (long i = 0; i < count; i++) {
+    for (long i = 0; i < count; i++) {
         char key[32];  // Increased buffer size
         snprintf(key, sizeof(key), "track%d", static_cast<int>(i));  // Using %d and casting to int
         char path[1024] = {0};
-        if (ini_gets(PLAYLIST_COUNT_CONFIG[0], key, "", path, sizeof(path), CONFIG_PATH) > 0) {
+        if (ini_gets(PLAYLIST_COUNT_CONFIG[0], key, "", path, sizeof(path), targetConfigPath) > 0) {
             playlist.push_back(path);
         }
     }
+
     return playlist;
 }
 
-void save_playlist(const std::vector<std::string>& playlist) {
+void save_playlist(const std::vector<std::string>& playlist, u64 tid) {
     create_config_dir();
     
-    ini_putl(PLAYLIST_COUNT_CONFIG[0], PLAYLIST_COUNT_CONFIG[1], playlist.size(), CONFIG_PATH);
+    char targetConfigPath[49]{};
+
+    if(get_title_playlist_mode()) {
+        std::strcpy(targetConfigPath,CONFIG_DIRECTORY_PATH);
+        std::strcat(targetConfigPath,get_tid_str(tid));
+        std::strcat(targetConfigPath,CONFIG_FILE_EXTENSION);
+    }
+    else {
+        std::strcpy(targetConfigPath,CONFIG_PATH);
+    }
+
+    ini_putl(PLAYLIST_COUNT_CONFIG[0], PLAYLIST_COUNT_CONFIG[1], playlist.size(), targetConfigPath);
     
     for (size_t i = 0; i < playlist.size(); i++) {
         char key[32];  // Increased buffer size
         snprintf(key, sizeof(key), "track%d", static_cast<int>(i));  // Using %d and casting to int
-        ini_puts(PLAYLIST_COUNT_CONFIG[0], key, playlist[i].c_str(), CONFIG_PATH);
+        ini_puts(PLAYLIST_COUNT_CONFIG[0], key, playlist[i].c_str(), targetConfigPath);
     }
 }
 

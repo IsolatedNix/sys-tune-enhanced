@@ -232,28 +232,6 @@ namespace tune::impl {
         g_current = current;
         g_queue_position = 0;
 
-        // Load saved playlist
-        auto saved_paths = config::get_playlist();
-        for (const auto& path : saved_paths) {
-            if (sdmc::FileExists(path.c_str())) {
-                // NOTE: do not decrement this
-                static PlaylistID playlist_id{};
-
-                const PlaylistEntry new_entry{
-                    .path = path,
-                    .id = playlist_id
-                };
-                g_playlist->push_back(new_entry);
-
-                // add new entry id to shuffle_playlist_list
-                const auto shuffle_playlist_size = g_shuffle_playlist->size();
-                const auto shuffle_index = (shuffle_playlist_size > 1) ? (randomGet64() % shuffle_playlist_size) : 0;
-                g_shuffle_playlist->emplace(g_shuffle_playlist->cbegin() + shuffle_index, playlist_id);
-
-                playlist_id++;
-            }
-        }
-
         if (auto rc = audioInit(); R_FAILED(rc)) {
             return rc;
         }
@@ -279,7 +257,9 @@ namespace tune::impl {
             for (const auto& entry : *g_playlist) {
                 paths.push_back(entry.path);
             }
-            config::save_playlist(paths);
+            u64 pid{}, new_tid{};
+            pm::getCurrentPidTid(&pid, &new_tid);
+            config::save_playlist(paths,new_tid);
         }
 
         g_should_run = false;
@@ -414,6 +394,7 @@ namespace tune::impl {
         // Load and apply the autoplay setting from config
         bool autoplay_enabled = config::get_autoplay_enabled();
         bool whitelist_mode = config::get_whitelist_mode();
+        bool is_whitelisted = false;
         g_should_pause = !autoplay_enabled;  // Set initial pause state based on autoplay setting
 
         while (g_should_run) {
@@ -421,6 +402,10 @@ namespace tune::impl {
             if (pm::PollCurrentPidTid(&pid, &new_tid)) {
                 // check if title is blacklisted
                 // Always initialize these to safe defaults
+                if (config::get_title_playlist_mode()) {
+                    // Title Playlist Mode: can crash if queue is not cleared before closing audren
+                    ClearQueue(); 
+                }
                 g_close_audren = config::get_title_blacklist(new_tid);
                 g_should_pause = true;
 
@@ -428,16 +413,14 @@ namespace tune::impl {
                 g_use_title_volume = false;
 
                 if (new_tid != 0) {  // Only process if we have a valid title ID
-                    if (whitelist_mode) {
+                    if (whitelist_mode && !g_close_audren) {
                         // In whitelist mode, check if this title is whitelisted
                         bool is_whitelisted = config::get_title_whitelist(new_tid);
                         g_close_audren = !is_whitelisted;
                         g_should_pause = !is_whitelisted;
-                    } else {
-                        // In blacklist mode (default), only close if blacklisted
-                        bool is_blacklisted = config::get_title_blacklist(new_tid);
-                        g_close_audren = is_blacklisted;
+                    }  
 
+                    if (!g_close_audren) {
                         // Only check title-specific settings if autoplay is enabled
                         if (autoplay_enabled) {
                             // TODO: fade song in rather than abruptly playing to avoid jump scares
@@ -447,7 +430,43 @@ namespace tune::impl {
                                 g_should_pause = !config::get_title_enabled_default();
                             }
                         }
+                        // Load saved playlist
+                        if (config::get_title_playlist_mode() || g_playlist->size() == 0) {
+                            auto saved_paths = config::get_playlist(new_tid);
+                            for (const auto& path : saved_paths) {
+                                if (sdmc::FileExists(path.c_str())) {
+                                    // NOTE: do not decrement this
+                                    static PlaylistID playlist_id{};
+
+                                    const PlaylistEntry new_entry{
+                                        .path = path,
+                                        .id = playlist_id
+                                    };
+                                    g_playlist->push_back(new_entry);
+
+                                    // add new entry id to shuffle_playlist_list
+                                    const auto shuffle_playlist_size = g_shuffle_playlist->size();
+                                    const auto shuffle_index = (shuffle_playlist_size > 1) ? (randomGet64() % shuffle_playlist_size) : 0;
+                                    g_shuffle_playlist->emplace(g_shuffle_playlist->cbegin() + shuffle_index, playlist_id);
+
+                                    playlist_id++;
+                                }
+                            }
+                        }
+                    } else { 
+                        // Note: Clears the queue when switching to a non whitelisted or blacklisted app. 
+                        // Having a different playlist by title id does not appear to work well 
+                        // when the paused song does not match with the active playlist...
+                        if (config::get_title_playlist_mode()) {
+                            ClearQueue();
+                        }
                     }
+                }
+
+                // Handle title-specific volume settings
+                if (config::has_title_volume(new_tid)) {
+                    g_use_title_volume = true;
+                    SetTitleVolume(std::clamp(config::get_title_volume(new_tid), 0.f, VOLUME_MAX));
                 }
             }
 
@@ -719,7 +738,10 @@ namespace tune::impl {
         for (const auto& entry : *g_playlist) {
             paths.push_back(entry.path);
         }
-        config::save_playlist(paths);
+        
+        u64 pid{}, new_tid{};
+        pm::getCurrentPidTid(&pid, &new_tid);
+        config::save_playlist(paths,new_tid);
 
         // increase playlist counter
         playlist_id++;

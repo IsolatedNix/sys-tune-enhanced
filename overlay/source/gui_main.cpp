@@ -96,6 +96,14 @@ tsl::elm::Element *MainGui::createUI() {
         list->addItem(whitelist_game);
     }
 
+    /* Title ID Playlist mode toggle */
+    auto title_playlist_mode = new tsl::elm::ToggleListItem("Title ID Playlist Mode", Config::get_title_playlist_mode());
+    title_playlist_mode->setStateChangedListener([](bool state) {
+        config::set_title_playlist_mode(state);
+    });
+    list->addItem(title_playlist_mode);
+
+
     /* Volume indicator */
     list->addItem(new tsl::elm::CategoryHeader("Volume Control"));
 
