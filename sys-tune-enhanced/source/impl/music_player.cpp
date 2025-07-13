@@ -415,7 +415,7 @@ namespace tune::impl {
                 if (new_tid != 0) {  // Only process if we have a valid title ID
                     if (whitelist_mode && !g_close_audren) {
                         // In whitelist mode, check if this title is whitelisted
-                        bool is_whitelisted = config::get_title_whitelist(new_tid);
+                        is_whitelisted = config::get_title_whitelist(new_tid);
                         g_close_audren = !is_whitelisted;
                         g_should_pause = !is_whitelisted;
                     }  

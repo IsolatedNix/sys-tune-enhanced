@@ -1,4 +1,7 @@
 #include "gui_error.hpp"
+#include "config/config.hpp"
+#include "pm/pm.hpp"
+#include "tune.h"
 
 #include "elm_overlayframe.hpp"
 

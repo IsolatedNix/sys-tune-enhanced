@@ -5,6 +5,7 @@
 #include <cstring>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 namespace config {
 

@@ -97,7 +97,7 @@ tsl::elm::Element *MainGui::createUI() {
     }
 
     /* Title ID Playlist mode toggle */
-    auto title_playlist_mode = new tsl::elm::ToggleListItem("Title ID Playlist Mode", Config::get_title_playlist_mode());
+    auto title_playlist_mode = new tsl::elm::ToggleListItem("Title ID Playlist Mode", config::get_title_playlist_mode());
     title_playlist_mode->setStateChangedListener([](bool state) {
         config::set_title_playlist_mode(state);
     });
