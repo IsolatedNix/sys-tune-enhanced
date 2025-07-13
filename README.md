@@ -19,7 +19,8 @@ In addition to the original behavior, the following features were added:
   **Note: Unfortunately you can't toggle these when the Sys-tune module is running / suspended as I couldn't get this to work without causing sys-tune to crash so please use [ovl-sysmodules](https://github.com/WerWolv/ovl-sysmodules) to close sys-tune first!**
 
 ## Installation
-1. To be added...
+1. Download release zip from [here](https://github.com/IsolatedNix/sys-tune-enhanced/releases/latest)
+2. Extract the zip to the root of your sd card.
 
 Leaving the orginal readme notes from HookedBehemoth below...
 
